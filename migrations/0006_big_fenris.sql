@@ -1,0 +1,1 @@
+ALTER TABLE "abandoned_carts" ALTER COLUMN "contact_id" SET DATA TYPE varchar;

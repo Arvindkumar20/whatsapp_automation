@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+tmp
+docs
+*.zip
+*.sql
+err.json
+err2.json
