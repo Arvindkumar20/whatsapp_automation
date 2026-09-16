@@ -1,0 +1,260 @@
+name: WhatsWay CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test, TypeScript & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          set -e
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/vps_deploy_key
+          chmod 600 ~/.ssh/vps_deploy_key
+
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+          ssh \
+            -i ~/.ssh/vps_deploy_key \
+            -p "$VPS_PORT" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" \
+            "DEPLOY_SHA='$DEPLOY_SHA' bash -s" <<'REMOTE_SCRIPT'
+
+            set -e
+
+            APP_DIR="/home/protickmeta_ai/whatsapp-platform"
+
+            echo "=========================================="
+            echo " WhatsWay Production Deployment"
+            echo "=========================================="
+
+            cd "$APP_DIR"
+
+            echo "==> Verifying Git repository..."
+
+            if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+              echo "ERROR: $APP_DIR is not a Git repository."
+              exit 1
+            fi
+
+            echo "==> Checking .env protection..."
+
+            if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+              echo "ERROR: .env is tracked by Git."
+              echo "Production deployment aborted."
+              exit 1
+            fi
+
+            echo "==> Fetching GitHub main..."
+
+            git fetch --prune origin main
+
+            echo "==> Checking requested deployment commit..."
+
+            if ! git cat-file -e "$DEPLOY_SHA^{commit}" 2>/dev/null; then
+              echo "ERROR: Deployment commit $DEPLOY_SHA was not fetched."
+              exit 1
+            fi
+
+            echo "==> Updating server to exact deployment commit..."
+
+            git reset --hard "$DEPLOY_SHA"
+
+            echo "Deployed commit:"
+            git rev-parse --short HEAD
+
+            echo "==> Loading production environment..."
+
+            if [ ! -f .env ]; then
+              echo "ERROR: Production .env file does not exist."
+              exit 1
+            fi
+
+            set -a
+            . ./.env
+            set +a
+
+            if [ -z "${DATABASE_URL:-}" ]; then
+              echo "ERROR: DATABASE_URL is not configured."
+              exit 1
+            fi
+
+            echo "==> Creating PostgreSQL backup..."
+
+            BACKUP_DIR="$APP_DIR/backups/database"
+            mkdir -p "$BACKUP_DIR"
+
+            BACKUP_FILE="$BACKUP_DIR/whatsway_$(date +%Y%m%d_%H%M%S).dump"
+
+            pg_dump \
+              "$DATABASE_URL" \
+              --format=custom \
+              --file="$BACKUP_FILE"
+
+            echo "Database backup created:"
+            echo "$BACKUP_FILE"
+
+            echo "==> Installing dependencies..."
+
+            npm ci
+
+            echo "==> Building application..."
+
+            export NODE_OPTIONS="--max-old-space-size=1536"
+            npm run build
+
+            echo "==> Running database precheck..."
+
+            if [ -f scripts/prod-v37-precheck-and-cleanup.sql ]; then
+              psql "$DATABASE_URL" \
+                -v ON_ERROR_STOP=1 \
+                -f scripts/prod-v37-precheck-and-cleanup.sql
+            fi
+
+            echo "==> Syncing database schema..."
+
+            npm run db:push -- --force
+
+            echo "==> Checking application version..."
+
+            EXPECTED_VERSION=$(node -p "require('./package.json').version")
+
+            if [ -f VERSION ]; then
+              VERSION_FILE_CONTENT=$(tr -d '[:space:]' < VERSION)
+
+              if [ "$VERSION_FILE_CONTENT" != "$EXPECTED_VERSION" ]; then
+                echo "ERROR: VERSION file does not match package.json."
+                exit 1
+              fi
+            fi
+
+            echo "Application version: $EXPECTED_VERSION"
+
+            echo "==> Restarting PM2..."
+
+            if pm2 describe whatsway >/dev/null 2>&1; then
+              pm2 restart whatsway
+            else
+              pm2 start ecosystem.config.cjs
+            fi
+
+            pm2 save
+
+            echo "==> Waiting for application..."
+
+            sleep 5
+
+            echo "==> Checking PM2..."
+
+            PM2_STATUS=$(pm2 jlist | node -e '
+              let data = "";
+              process.stdin.on("data", chunk => data += chunk);
+              process.stdin.on("end", () => {
+                try {
+                  const apps = JSON.parse(data);
+                  const app = apps.find(x => x.name === "whatsway");
+
+                  if (!app) {
+                    console.log("missing");
+                    process.exit(0);
+                  }
+
+                  console.log(app.pm2_env?.status || "unknown");
+                } catch {
+                  console.log("parse_error");
+                }
+              });
+            ')
+
+            if [ "$PM2_STATUS" != "online" ]; then
+              echo "ERROR: WhatsWay PM2 process is not online."
+              pm2 status
+              pm2 logs whatsway --lines 50 --nostream
+              exit 1
+            fi
+
+            echo "PM2 status: online"
+
+            echo "==> Checking local application..."
+
+            HTTP_CODE=$(curl \
+              -s \
+              -o /dev/null \
+              -w "%{http_code}" \
+              --max-time 10 \
+              "http://127.0.0.1:${PORT:-5000}/api/app-update/status" \
+              || true)
+
+            echo "Application HTTP status: $HTTP_CODE"
+
+            case "$HTTP_CODE" in
+              2*|3*|401|403)
+                echo "Application is responding."
+                ;;
+              *)
+                echo "ERROR: Application health check failed."
+                pm2 logs whatsway --lines 50 --nostream
+                exit 1
+                ;;
+            esac
+
+            echo ""
+            echo "=========================================="
+            echo " Deployment completed successfully"
+            echo "=========================================="
+
+            REMOTE_SCRIPT
