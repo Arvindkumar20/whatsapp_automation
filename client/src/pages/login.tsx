@@ -25,6 +25,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import ResetPassword from "@/components/ResetPassword";
 import VerifyOtp from "@/components/VerifyOtp";
 import ForgotPasswordEmail from "@/components/ForgotPasswordEmail";
+import brandLogo from "../images/brand/web-logo.png";
 import {
   Card,
   CardContent,
@@ -175,7 +176,7 @@ export default function LoginPage() {
           <div className="mb-10">
             {brandSettings?.logo ? (
               <img
-                src={brandSettings?.logo}
+                src={brandLogo}
                 alt="Logo"
                 className="h-12 object-contain brightness-0 invert"
               />
