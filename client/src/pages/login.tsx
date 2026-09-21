@@ -178,7 +178,7 @@ export default function LoginPage() {
               <img
                 src={brandLogo}
                 alt="Logo"
-                className="h-12 object-contain brightness-0 invert"
+                className="h-12 object-contain"
               />
             ) : (
               <div className="flex items-center gap-3">
