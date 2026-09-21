@@ -591,7 +591,7 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 text-white w-full">
           <div className="mb-10">
             <img
-              src={brandLogo}
+              src={brandLogo1}
               alt={brandSettings?.title || "Logo"}
               className="h-12 object-contain"
               onError={(e) => {
@@ -629,7 +629,7 @@ export default function LoginPage() {
           <div className="text-center lg:text-left">
             <div className="flex justify-center lg:hidden mb-6">
               <img
-                src={brandLogo1}
+                src={brandLogo}
                 alt={brandSettings?.title || "Logo"}
                 className="h-12 object-contain"
                 onError={(e) => {
