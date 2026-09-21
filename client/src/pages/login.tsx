@@ -175,13 +175,13 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 text-white w-full">
           <div className="mb-10">
             {/* {brandSettings?.logo ? (  */}
-              <img
-                src={brandLogo}
-                alt="Logo"
-                className="h-12 object-contain"
-              />
+            <img
+              src={brandLogo}
+              alt="Logo"
+              className="h-12 object-contain"
+            />
             {/* ) : ( */}
-              {/* <div className="flex items-center gap-3">
+            {/* <div className="flex items-center gap-3">
                 <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-2.5">
                   <MessageSquare className="h-7 w-7 text-green-400" />
                 </div>
@@ -217,17 +217,17 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center lg:text-left">
             <div className="flex justify-center lg:hidden mb-6">
-              {brandSettings?.logo ? (
-                <img
+              {/* {brandSettings?.logo ? ( */}
+              <img
                 src={brandLogo}
                 alt="Logo"
                 className="h-12 object-contain"
               />
-              ) : (
-                <div className="bg-slate-800 text-white rounded-full p-3">
+              {/* ) : ( */}
+              {/* <div className="bg-slate-800 text-white rounded-full p-3">
                   <MessageSquare className="h-8 w-8" />
-                </div>
-              )}
+                </div> */}
+              {/* )} */}
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               {step === "login" && "Welcome Back"}
