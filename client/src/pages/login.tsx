@@ -219,10 +219,10 @@ export default function LoginPage() {
             <div className="flex justify-center lg:hidden mb-6">
               {brandSettings?.logo ? (
                 <img
-                  src={brandSettings?.logo}
-                  alt="Logo"
-                  className="h-14 object-contain"
-                />
+                src={brandLogo}
+                alt="Logo"
+                className="h-12 object-contain"
+              />
               ) : (
                 <div className="bg-slate-800 text-white rounded-full p-3">
                   <MessageSquare className="h-8 w-8" />
