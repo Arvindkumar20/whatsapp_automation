@@ -174,20 +174,20 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 text-white w-full">
           <div className="mb-10">
-            {brandSettings?.logo ? (
+            {/* {brandSettings?.logo ? (  */}
               <img
                 src={brandLogo}
                 alt="Logo"
                 className="h-12 object-contain"
               />
-            ) : (
-              <div className="flex items-center gap-3">
+            {/* ) : ( */}
+              {/* <div className="flex items-center gap-3">
                 <div className="bg-green-500/10 backdrop-blur-sm rounded-xl p-2.5">
                   <MessageSquare className="h-7 w-7 text-green-400" />
                 </div>
                 <span className="text-2xl font-bold">WhatsWay</span>
-              </div>
-            )}
+              </div> */}
+            {/* )} */}
           </div>
 
           <h2 className="text-3xl xl:text-4xl font-bold leading-tight mb-4">
