@@ -439,6 +439,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import ResetPassword from "@/components/ResetPassword";
 import VerifyOtp from "@/components/VerifyOtp";
 import ForgotPasswordEmail from "@/components/ForgotPasswordEmail";
+import brandLogo1 from "../images/brand/web-logo1.png";
 import brandLogo from "../images/brand/web-logo.png";
 import {
   Card,
@@ -577,9 +578,7 @@ export default function LoginPage() {
   ];
 
   // ✅ Dynamic logo source — brandSettings.logo use karo, warna fallback
-  const logoSrc = brandSettings?.logo?.trim()
-    ? brandSettings.logo
-    : brandLogo;
+
 
   return (
     <div className="min-h-screen flex">
@@ -592,7 +591,7 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 text-white w-full">
           <div className="mb-10">
             <img
-              src={logoSrc}
+              src={brandLogo}
               alt={brandSettings?.title || "Logo"}
               className="h-12 object-contain"
               onError={(e) => {
@@ -630,7 +629,7 @@ export default function LoginPage() {
           <div className="text-center lg:text-left">
             <div className="flex justify-center lg:hidden mb-6">
               <img
-                src={logoSrc}
+                src={brandLogo1}
                 alt={brandSettings?.title || "Logo"}
                 className="h-12 object-contain"
                 onError={(e) => {
