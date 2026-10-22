@@ -27,6 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PlansDataTypes } from "@/types/types";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import WhatsApp from "./Whatsapp";
 
 const Home = () => {
   const { data: paymentProviders } = useQuery<PlansDataTypes>({
@@ -40,6 +41,7 @@ const Home = () => {
     <>
       {/* <Header /> */}
       <Hero />
+      <WhatsApp/>
       <Features />
       <HowItWorks />
       <UseCases />
